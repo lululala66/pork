@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>產品清單</title>
+  <style>
+    :root{ color-scheme: light;
+      --bg:#f7f8fb; --fg:#1f2937; --muted:#6b7280; --card:#fff;
+      --border:#e5e7eb; --border-strong:#d1d5db; --thead:#f3f4f6;
+      --accent:#2563eb; --accent-2:#3b82f6; --shadow:0 8px 20px rgba(17,24,39,.08);
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;line-height:1.55;}
+    .container{max-width:1000px;margin:24px auto 40px;padding:0 16px;}
+    .appbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;}
+    .logo{font-size:20px;font-weight:800;color:var(--accent);}
+    .searchbar{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;position:relative;}
+    .search-wrap{position:relative;}
+    input[type=text]{height:40px;padding:0 12px;border:1px solid var(--border-strong);
+      border-radius:10px;font-size:16px;min-width:280px;background:#fff;}
+    button{height:40px;padding:0 14px;border-radius:10px;border:none;
+      background:linear-gradient(180deg,var(--accent-2),var(--accent));
+      color:#fff;font-weight:600;cursor:pointer;transition:.15s;box-shadow:0 6px 14px rgba(37,99,235,.18);}
+    button:hover{filter:brightness(1.05);transform:translateY(-1px);}
+
+    table{width:100%;border-collapse:collapse;background:#fff;box-shadow:var(--shadow);border-radius:16px;overflow:hidden;}
+    thead th{background:var(--thead);}
+    th,td{border-top:1px solid var(--border);padding:12px;text-align:left;vertical-align:middle;}
+    tbody tr:hover{background:#f3f4f6;cursor:pointer;}
+    .right{text-align:right;}
+
+    /* 建議清單 */
+    .suggest{
+      position:absolute; top:44px; left:0; right:0; z-index:20;
+      background:#fff; border:1px solid var(--border-strong);
+      border-radius:10px; box-shadow:var(--shadow); overflow:auto; max-height:260px;
+    }
+    .s-item{ padding:8px 12px; display:flex; justify-content:space-between; gap:12px;
+      cursor:pointer; border-top:1px solid var(--border); }
+    .s-item:first-child{ border-top:none; }
+    .s-id{ color:#6b7280; min-width:56px; } .s-name{ flex:1; } .s-meta{ color:#6b7280; white-space:nowrap; }
+    .s-item.active, .s-item:hover{ background:#eff6ff; }
+    #admin-badge{display:none;color:#10b981;font-weight:700;margin-left:6px;}
+
+    /* 內嵌編輯輸入框 */
+    .cell{
+      width:100%; height:38px; padding:0 10px; border:1px solid var(--border-strong);
+      border-radius:10px; outline:none; background:#fff; transition:.15s ease;
+    }
+    .cell:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.18); }
+    .cell-right{ text-align:right; }
+    .row-new td{ background:#f8fafc; }
+    .muted{ color:#6b7280; font-size:13px; }
+
+    /* 刪除按鈕 */
+    .btn-del{
+      border:1px solid var(--border-strong); background:#fff; color:#ef4444;
+      border-radius:10px; padding:6px 10px; cursor:pointer; transition:.15s ease;
+    }
+    .btn-del:hover{ background:#fee2e2; transform:translateY(-1px); }
+    .op-col{ width: 92px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="appbar">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="logo">📦 產品清單</div>
+        <span id="admin-badge">（管理中）</span>
+      </div>
+      <div class="searchbar">
+        <div class="search-wrap">
+          <input id="search" type="text" placeholder="搜尋產品名稱或編號..." autocomplete="off">
+          <div id="suggest" class="suggest" role="listbox" aria-label="建議清單" hidden></div>
+        </div>
+        <button id="btn-search">搜尋</button>
+        <button id="btn-back">返回記帳頁</button>
+        <button id="btn-login">管理登入</button>
+        <button id="btn-logout" style="display:none">登出</button>
+        <button id="btn-add" style="display:none">新增一列</button>
+      </div>
+    </header>
+
+    <table id="product-table">
+      <thead>
+        <tr><th>編號</th><th>產品名稱</th><th>單位</th><th class="right">單價</th><th class="op-col">操作</th></tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr><td colspan="5" class="muted">提示：管理員可直接在表格內修改；點「新增一列」會在最底下加一筆空白列，編輯完成即自動儲存。可使用 ↑ ↓ ← → 或 Tab 快速移動欄位。</td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <script>
+  const table = document.getElementById('product-table');
+  const tbody = table.querySelector('tbody');
+  const searchInput = document.getElementById('search');
+  const btnSearch = document.getElementById('btn-search');
+  const btnBack = document.getElementById('btn-back');
+  const btnLogin = document.getElementById('btn-login');
+  const btnLogout = document.getElementById('btn-logout');
+  const btnAdd = document.getElementById('btn-add');
+  const adminBadge = document.getElementById('admin-badge');
+  let IS_ADMIN = false;
+
+  // 返回首頁（保留參數）
+  btnBack.addEventListener('click', ()=>{
+    const qs = sessionStorage.getItem('current_order_params') || '';
+    window.location.href = '/' + (qs ? ('?'+qs) : '');
+  });
+
+  async function loadProducts(q=''){
+    const r = await fetch(`/api/products?query=${encodeURIComponent(q)}`);
+    const list = await r.json();
+    renderRows(list);
+  }
+
+  function escapeHtml(s){ return (s??'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function renderRows(list){
+    tbody.innerHTML = '';
+    for(const p of list){
+      const tr = document.createElement('tr');
+      tr.dataset.id = p.id;
+
+      if(IS_ADMIN){
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td><input class="cell" data-field="name" value="${escapeHtml(p.name||'')}"></td>
+          <td><input class="cell" data-field="unit" value="${escapeHtml(p.unit||'')}"></td>
+          <td class="right"><input class="cell cell-right" data-field="price" value="${Number(p.price??0)}"></td>
+          <td><button class="btn-del" type="button">🗑 刪除</button></td>
+        `;
+      }else{
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td>${escapeHtml(p.name||'')}</td>
+          <td>${escapeHtml(p.unit||'')}</td>
+          <td class="right">${Number(p.price??0).toFixed(2)}</td>
+          <td class="muted">—</td>
+        `;
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  btnSearch.addEventListener('click', ()=> loadProducts(searchInput.value.trim()));
+  searchInput.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ loadProducts(searchInput.value.trim()); }
+  });
+
+  // ✅ 非管理員：點整列就回首頁；避免被 INPUT 或按鈕阻擋
+  table.addEventListener('click', e=>{
+    const tr = e.target.closest('tr[data-id]'); if(!tr) return;
+    if(IS_ADMIN) return; // 管理員模式不跳
+    if(e.target.tagName === 'INPUT' || e.target.closest('button')) return; // 保險：避免內部元素阻擋
+    goHomeWithProductId(tr.dataset.id);
+  });
+
+  function goHomeWithProductId(pid){
+    const qs = new URLSearchParams(sessionStorage.getItem('current_order_params') || '');
+    qs.set('product_id', pid);
+    window.location.href = '/?' + qs.toString();
+  }
+
+  // ── 管理員：即時更新（輸入變更就送） ──
+  let debounceTimer;
+  tbody.addEventListener('input', e=>{
+    if(!IS_ADMIN) return;
+    const input = e.target.closest('.cell'); if(!input) return;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(()=> saveCell(input), 150);
+  });
+
+  // Excel 式移動
+  tbody.addEventListener('keydown', e=>{
+    if(!IS_ADMIN) return;
+    const input = e.target.closest('.cell'); if(!input) return;
+    const allInputs = [...document.querySelectorAll('.cell')];
+    const idx = allInputs.indexOf(input);
+    const step = 3; // 本表可編輯欄位：name, unit, price
+
+    if(e.key==='Enter'){ e.preventDefault(); saveCell(input); moveFocus(allInputs, idx+1); }
+    else if(e.key==='ArrowRight'){ moveFocus(allInputs, idx+1); }
+    else if(e.key==='ArrowLeft'){ moveFocus(allInputs, idx-1); }
+    else if(e.key==='ArrowUp'){ moveFocus(allInputs, idx-step); }
+    else if(e.key==='ArrowDown'){ moveFocus(allInputs, idx+step); }
+    else if(e.key==='Tab'){ e.preventDefault(); saveCell(input); moveFocus(allInputs, idx+(e.shiftKey?-1:1)); }
+  });
+
+  function moveFocus(list, idx){
+    if(idx<0) idx=0;
+    if(idx>=list.length) idx=list.length-1;
+    const el=list[idx];
+    if(el){ el.focus(); el.select(); }
+  }
+
+  async function saveCell(input){
+    const tr = input.closest('tr');
+    const pid = tr.dataset.id;
+    const field = input.dataset.field;
+    const val = input.value.trim();
+
+    if(!pid){ // 新列：用 add
+      const name = tr.querySelector('[data-field="name"]').value.trim();
+      const unit = tr.querySelector('[data-field="unit"]').value.trim();
+      const price = tr.querySelector('[data-field="price"]').value.trim() || '0';
+      if(!name) return;
+      const r = await fetch('/api/products/add', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name, unit, price})
+      });
+      const j = await r.json();
+      if(j.ok){
+        tr.dataset.id = j.id;
+        tr.classList.remove('row-new');
+        loadProducts(searchInput.value.trim());
+      }else{
+        alert(j.error || '新增失敗');
+      }
+      return;
+    }
+
+    const payload = { id: pid }; payload[field] = val;
+    const r = await fetch('/api/products/update', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const j = await r.json();
+    if(!j.ok){ alert(j.error || '更新失敗'); }
+  }
+
+  // 新增空白列（最底下）
+  btnAdd.addEventListener('click', ()=>{
+    if(!IS_ADMIN){ alert('請先管理登入'); return; }
+    const tr = document.createElement('tr'); tr.className = 'row-new';
+    tr.innerHTML = `
+      <td>（新）</td>
+      <td><input class="cell" data-field="name" placeholder="輸入產品名稱"></td>
+      <td><input class="cell" data-field="unit" placeholder="斤 / 個 / 只"></td>
+      <td class="right"><input class="cell cell-right" data-field="price" placeholder="0"></td>
+      <td><button class="btn-del" type="button">🗑 刪除</button></td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelector('[data-field="name"]').focus();
+  });
+
+  // 刪除按鈕（管理員）
+  tbody.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.btn-del'); if(!btn) return;
+    e.stopPropagation(); // 避免觸發「點列回首頁」
+    if(!IS_ADMIN){ alert('請先管理登入'); return; }
+    const tr = btn.closest('tr');
+    const pid = tr.dataset.id;
+
+    // 新列還沒存進 DB：直接移除列
+    if(!pid){ tr.remove(); return; }
+
+    if(!confirm(`確定要刪除 #${pid}？`)) return;
+    const r = await fetch('/api/products/delete', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id: pid})
+    });
+    const j = await r.json();
+    if(!j.ok){ alert(j.error || '刪除失敗'); return; }
+    loadProducts(searchInput.value.trim());
+  });
+
+  // 管理員登入登出 / 狀態同步（登入/登出後強制 reload）
+  async function refreshAuthUI(){
+    const r = await fetch('/api/auth/status'); const j = await r.json();
+    IS_ADMIN = !!(j && j.admin);
+    btnLogin.style.display = IS_ADMIN ? 'none' : '';
+    btnLogout.style.display = IS_ADMIN ? '' : 'none';
+    btnAdd.style.display = IS_ADMIN ? '' : 'none';
+    adminBadge.style.display = IS_ADMIN ? '' : 'none';
+    loadProducts(searchInput.value.trim());
+  }
+  btnLogin.addEventListener('click', async ()=>{
+    const p = prompt('請輸入管理密碼：'); if(p==null) return;
+    const r = await fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:p})});
+    const j = await r.json(); if(!j.ok){ alert('密碼錯誤'); return; }
+    window.location.reload(); // ✅ 登入後重新載入，確保 IS_ADMIN 乾淨
+  });
+  btnLogout.addEventListener('click', async ()=>{
+    await fetch('/api/auth/logout', {method:'POST'});
+    window.location.reload(); // ✅ 登出後重新載入
+  });
+
+  // 首次載入
+  refreshAuthUI();
+  </script>
+</body>
+</html>

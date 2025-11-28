@@ -1,0 +1,5 @@
+html,body{margin:0;padding:0}
+:root{--tap:48px}
+button,input{font-size:18px;padding:10px 14px;min-height:var(--tap)}
+.toolbar{display:flex;gap:12px;padding:12px}
+table{font-size:18px}

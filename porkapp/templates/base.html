@@ -1,0 +1,18 @@
+<!doctype html><html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', ()=>navigator.serviceWorker.register('/static/sw.js'));
+    }
+  </script>
+  <title>記帳</title>
+</head>
+<body>
+  {% block content %}{% endblock %}
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
