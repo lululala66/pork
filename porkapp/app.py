@@ -153,16 +153,33 @@ def api_status():
 # ───────────────── 頁面 ─────────────────
 @app.get("/")
 def index():
+    # URL 上帶進來的 date（上方輸入框顯示的日期）
     date = (request.args.get("date") or datetime.now().strftime("%Y-%m-%d")).strip()
     vendor = (request.args.get("vendor") or "").strip()
     filename = (request.args.get("file") or "").strip()
+
     # 從檔名回推廠商
     if filename and not vendor:
         vendor = vendor_from_filename(filename)
+
     path = order_path(date, vendor, filename)
     ensure_header(path)
     rows, total = read_rows(path)
-    return render_template("index.html", date=date, vendor=vendor, rows=rows, total_sum=total)
+
+    # 🆕 從檔名抓出「檔案的日期」，例如 2025-11-11__大象.csv → 2025-11-11
+    file_date = date
+    m = re.match(r"^(\d{4}-\d{2}-\d{2})__", filename)
+    if m:
+        file_date = m.group(1)
+
+    return render_template(
+        "index.html",
+        date=date,
+        vendor=vendor,
+        rows=rows,
+        total_sum=total,
+        file_date=file_date,   # 🆕 多丟一個變數給 template
+    )
 
 @app.get("/products")
 def products_page():
@@ -346,6 +363,29 @@ def api_list():
     for p in sorted(glob.glob(os.path.join(base,"**/*.csv"),recursive=True), key=os.path.getmtime, reverse=True):
         arr.append({"filename":os.path.basename(p),"display":os.path.relpath(p,ORDERS_ROOT)})
     return jsonify(arr)
+
+# ───────────────── 列印預覽頁面 ─────────────────
+@app.get("/print_preview")
+def print_preview():
+    # 從網址取得參數 ?date=...&vendor=...&file=...
+    ship_date = (request.args.get("date") or "").strip()
+    vendor = (request.args.get("vendor") or "").strip()
+    filename = (request.args.get("file") or "").strip()
+
+    if not filename:
+        return "缺少 file 參數", 404
+
+    # 使用原本的 order_path + read_rows
+    path = order_path(ship_date, vendor, filename)
+    rows, total_sum = read_rows(path)
+
+    return render_template(
+        "print_preview.html",
+        vendor=vendor,
+        ship_date=ship_date,
+        rows=rows,
+        print_time=datetime.now().strftime("%Y-%m-%d %H:%M")
+    )
 
 # ───────────────── Main ─────────────────
 if __name__ == "__main__":

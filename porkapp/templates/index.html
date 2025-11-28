@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>記帳系統</title>
+
   <style>
     :root{
       color-scheme: light;
@@ -19,113 +20,170 @@
     }
     a{ color:var(--accent); text-decoration:none; }
     a:hover{ text-decoration:underline; }
+
     .container{ max-width:1200px; margin:24px auto 40px; padding:0 16px; }
+
     .appbar{ display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
     .logo{ font-size:20px; font-weight:800; color:var(--accent); }
     .spacer{ flex:1; min-width:12px; }
+
     .nav{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
     .chip{
       display:inline-flex; align-items:center; padding:8px 12px;
       border:1px solid var(--border); border-radius:10px; background:#fff;
-      color:var(--fg); text-decoration:none; transition:.15s ease; cursor:pointer;
+      color:var(--fg); cursor:pointer; transition:.15s ease;
     }
     .chip:hover{ background:#f9fafb; transform:translateY(-1px); }
+
     .meta-input{ height:36px; padding:0 10px; border:1px solid var(--border-strong); border-radius:8px; background:#fff; }
     .meta-label{ font-size:12px; color:var(--muted); margin:0 4px; }
+
     .card{ background:var(--card); border:1px solid var(--border);
       border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
     .card-header{ padding:16px 18px; border-bottom:1px solid var(--border);
-      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+      display:flex; align-items:center; justify-content:space-between; }
     .card-title{ font-weight:800; }
-    .month-nav{ display:flex; align-items:center; gap:8px; }
+    .month-nav{ display:flex; align-items:center; }
     .month-label{ font-weight:700; color:var(--fg); min-width:9ch; text-align:center; }
+
     .card-body{ padding:20px 24px; }
     .toolbar{
       display:grid;
-      grid-template-columns:minmax(160px,200px) minmax(280px,1fr) minmax(140px,200px) 110px;
-      gap:14px; align-items:center; margin-bottom:10px;
+      grid-template-columns:minmax(120px,160px) minmax(200px,1fr) minmax(100px,160px) 100px;
+      gap:16px; align-items:center;
     }
-    .pair{ display:grid; grid-template-columns:max-content 1fr; column-gap:10px; align-items:center; min-width:0; }
-    .label-inline{ white-space:nowrap; font-size:14px; color:var(--muted); padding-right:2px; line-height:1.2; }
+    .pair{ display:grid; grid-template-columns:max-content 1fr; align-items:center; gap:10px; }
+
     .input{
       display:block; width:100%; height:44px; padding:0 14px;
       border:1px solid var(--border-strong); background:#fff; color:#111827;
       border-radius:12px; outline:none; transition:.15s ease;
-      box-shadow:inset 0 1px 0 rgba(0,0,0,.02); min-width:0;
+      box-shadow:inset 0 1px 0 rgba(0,0,0,.02);
     }
-    .input::placeholder{ color:#94a3b8; }
-    .input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.2); }
-    input[type=number]{ appearance:textfield; -moz-appearance:textfield; }
-    .btn{
-      height:44px; padding:0 18px; border-radius:12px; border:1px solid rgba(37,99,235,.55);
-      background:linear-gradient(180deg,var(--accent-2),var(--accent));
-      color:#fff; font-weight:700; letter-spacing:.3px; cursor:pointer;
-      transition:.15s ease; box-shadow:0 8px 16px rgba(37,99,235,.18);
-    }
-    .btn:hover{ filter:brightness(1.05); transform:translateY(-1px); }
-    table{ width:100%; border-collapse:collapse; background:#fff; }
-    thead th{ background:var(--thead); position:sticky; top:0; }
-    th,td{ border-top:1px solid var(--border); padding:12px; text-align:left; vertical-align:middle; }
-    tbody tr:hover{ background:#f9fafb; }
     .right{ text-align:right; }
+
+    table{ width:100%; border-collapse:collapse; background:#fff; }
+    thead th{ background:var(--thead); }
+    th,td{ border-top:1px solid var(--border); padding:12px; }
+
+    /* 編號、產品 → 左對齊 */
+    #grid thead th:nth-child(1),
+    #grid tbody td:nth-child(1),
+    #grid thead th:nth-child(2),
+    #grid tbody td:nth-child(2){
+      text-align:left;
+    }
+
+    /* 數量、單位、單價、總計、操作 → 右對齊 */
+    #grid thead th:nth-child(3),
+    #grid tbody td:nth-child(3),
+    #grid thead th:nth-child(4),
+    #grid tbody td:nth-child(4),
+    #grid thead th:nth-child(5),
+    #grid tbody td:nth-child(5),
+    #grid thead th:nth-child(6),
+    #grid tbody td:nth-child(6),
+    #grid thead th:nth-child(7),
+    #grid tbody td:nth-child(7){
+      text-align:right;
+    }
+
+    /* 數量 input 右對齊 */
+    .cell.right{ text-align:right !important; }
+
     .cell{
-      width:100%; border:none; outline:none; background:transparent; padding:6px 0;
-      border-bottom:2px solid transparent; transition:.12s ease;
+      width:100%; border:none; outline:none; background:transparent;
+      padding:6px 0; border-bottom:2px solid transparent; transition:.12s ease;
     }
     .cell:focus{ border-bottom-color:var(--accent); }
-    tfoot td{ background:#fafafa; font-weight:800; }
-    .icon-btn{ border:1px solid var(--border-strong); background:#fff; color:var(--fg); border-radius:10px; padding:6px 10px; cursor:pointer; transition:.15s ease; }
-    .icon-btn:hover{ background:#f3f4f6; transform:translateY(-1px); }
+
+    tfoot td{ background:#fafafa; font-weight:800; text-align:right; }
+
+    .icon-btn{
+      border:1px solid var(--border-strong); background:#fff;
+      border-radius:10px; padding:6px 10px; cursor:pointer;
+    }
+    .btn{
+      height:44px; padding:0 18px; border-radius:12px;
+      background:linear-gradient(180deg,var(--accent-2),var(--accent));
+      border:1px solid rgba(37,99,235,.55);
+      color:#fff; font-weight:700; cursor:pointer;
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
+
     <header class="appbar">
       <div class="logo">📒 記帳系統</div>
       <div class="spacer"></div>
+
       <nav class="nav">
         <span class="meta-label">出貨廠商</span>
         <input id="meta-vendor" class="meta-input" type="text" placeholder="可留空" value="{{ vendor }}">
+
         <span class="meta-label">出貨日期</span>
         <input id="meta-date" class="meta-input" type="date" value="{{ date }}">
+
         <a class="chip" id="btn-new-file">📄 新增檔案</a>
         <a class="chip" id="btn-open-file">📂 開啟檔案</a>
         <a class="chip" href="{{ url_for('products_page') }}">📋 產品清單</a>
+        <a class="chip" id="btn-preview">🔍 預覽列印</a>
       </nav>
     </header>
 
     <section class="card">
+
       <div class="card-header">
         <div class="card-title">新增一筆記錄</div>
-        <div class="month-nav"><div class="month-label">{{ date }}</div></div>
+
+        <!-- 檔案日期：優先用 file_date -->
+        <div class="month-nav">
+          <div class="month-label">{{ file_date or date }}</div>
+        </div>
       </div>
 
       <div class="card-body">
-        <form method="POST" class="toolbar" novalidate onsubmit="return false;">
+
+        <!-- 用 hidden 把檔案日期丟給前端 JS -->
+        <input type="hidden" id="file-date" value="{{ file_date or '' }}">
+
+        <form class="toolbar" onsubmit="return false;">
           <div class="pair">
-            <label for="product-id" class="label-inline">編號</label>
-            <input id="product-id" class="input" type="number" placeholder="輸入產品編號" required inputmode="numeric"
-                   value="{{ request.args.get('product_id','') }}">
+            <label>編號</label>
+            <input id="product-id" class="input" type="number" placeholder="輸入產品編號">
           </div>
+
           <div class="pair">
-            <label for="product-name" class="label-inline">產品名稱</label>
-            <input id="product-name" class="input" type="text" readonly placeholder="自動顯示產品名稱">
+            <label>產品名稱</label>
+            <input id="product-name" class="input" type="text" placeholder="自動顯示產品名稱" readonly>
           </div>
+
           <div class="pair">
-            <label for="quantity" class="label-inline">數量</label>
-            <input id="quantity" class="input" type="text" placeholder="例如：20斤、1公斤、5個" required>
+            <label>數量</label>
+            <input id="quantity" class="input right" type="text" placeholder="例如：20斤、1公斤、5個">
           </div>
+
           <button class="btn" id="btn-add" type="button">新增</button>
         </form>
+
       </div>
 
       <table id="grid">
         <thead>
           <tr>
-            <th>編號</th><th>產品</th><th>數量</th><th>單位</th>
-            <th class="right">單價</th><th class="right">總計</th><th class="right">操作</th>
+            <th>編號</th>
+            <th>產品</th>
+            <th>數量</th>
+            <th>單位</th>
+            <th>單價</th>
+            <th>總計</th>
+            <th>操作</th>
           </tr>
         </thead>
+
         <tbody>
           {% for row in rows %}
           <tr data-index="{{ loop.index0 }}">
@@ -133,98 +191,255 @@
             <td>{{ row[1] }}</td>
             <td><input class="cell right" type="text" value="{{ row[2] }}" data-field="數量"></td>
             <td>{{ row[3] }}</td>
-            <td class="right">{{ row[4] }}</td>
-            <td class="right">{{ row[5] }}</td>
-            <td class="right"><button class="icon-btn btn-del" type="button">🗑 刪除</button></td>
+            <td>{{ row[4] }}</td>
+            <td>{{ row[5] }}</td>
+            <td><button class="icon-btn btn-del">刪除</button></td>
           </tr>
           {% endfor %}
         </tbody>
-        <tfoot><tr><td colspan="6" class="right">總金額</td><td class="right" id="total-sum">{{ total_sum }}</td></tr></tfoot>
+
+        <tfoot>
+          <tr>
+            <td colspan="6">總金額</td>
+            <td id="total-sum">{{ total_sum }}</td>
+          </tr>
+        </tfoot>
       </table>
+
     </section>
   </div>
 
   <script>
   (function(){
-    const grid=document.getElementById('grid');
-    const totalEl=document.getElementById('total-sum');
-    const vendorEl=document.getElementById('meta-vendor');
-    const dateEl=document.getElementById('meta-date');
-    const pidEl=document.getElementById('product-id');
-    const pnameEl=document.getElementById('product-name');
-    const qtyEl=document.getElementById('quantity');
-    const url=new URL(location.href);
-    const currentFile=url.searchParams.get('file')||'';
+    const grid      = document.getElementById('grid');
+    const totalEl   = document.getElementById('total-sum');
+    const vendorEl  = document.getElementById('meta-vendor');
+    const dateEl    = document.getElementById('meta-date');
+    const pidEl     = document.getElementById('product-id');
+    const pnameEl   = document.getElementById('product-name');
+    const qtyEl     = document.getElementById('quantity');
+    const fileDateEl = document.getElementById('file-date');
 
-    // 💾 記錄目前檔案參數，供產品清單返回使用
+    const url        = new URL(location.href);
+    const currentFile = url.searchParams.get('file') || '';
+
+    // 記錄目前檔案參數，供產品清單返回使用
     (function(){
       const params = new URLSearchParams(window.location.search);
       sessionStorage.setItem('current_order_params', params.toString());
     })();
 
-    // 產品名稱自動帶出
+    // 取得產品名稱
     async function fetchProduct(pid){
       if(!pid){ pnameEl.value=''; return; }
       try{
-        const r=await fetch(`/api/products?query=${encodeURIComponent(pid)}`);
-        const list=await r.json();
-        pnameEl.value=(Array.isArray(list)&&list.length>0)?(list[0].name||''):'';
-      }catch{ pnameEl.value=''; }
+        const r    = await fetch(`/api/products?query=${encodeURIComponent(pid)}`);
+        const list = await r.json();
+        pnameEl.value = (Array.isArray(list) && list.length > 0) ? (list[0].name || '') : '';
+      }catch(e){
+        pnameEl.value = '';
+      }
     }
-    let t=null;
-    const debounce=(fn,ms)=>function(...args){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,args),ms); };
-    pidEl.addEventListener('input',debounce(function(){ fetchProduct(this.value.trim()); },300));
 
-    (function(){
-      const initPid=(pidEl.value||'').trim();
-      if(initPid) fetchProduct(initPid);
-    })();
+    let t = null;
+    const debounce = (fn,ms)=>function(...args){
+      clearTimeout(t);
+      t = setTimeout(()=>fn.apply(this,args),ms);
+    };
 
+    pidEl.addEventListener('input', debounce(function(){
+      fetchProduct(this.value.trim());
+    }, 300));
+
+    // 新增一筆
     async function addRow(){
-      const payload={date:(dateEl.value||'').trim(),vendor:(vendorEl.value||'').trim(),filename:currentFile,product_id:(pidEl.value||'').trim(),quantity:(qtyEl.value||'').trim()};
-      if(!payload.date||!payload.product_id||!payload.quantity) return alert('請完整輸入日期、編號、數量');
-      const r=await fetch('/api_add_row',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      const j=await r.json(); if(!j.ok) return alert(j.error||'新增失敗');
+      const payload = {
+        date:     (dateEl.value    || '').trim(),
+        vendor:   (vendorEl.value  || '').trim(),
+        filename: currentFile,
+        product_id: (pidEl.value   || '').trim(),
+        quantity:   (qtyEl.value   || '').trim()
+      };
+
+      if(!payload.date || !payload.product_id || !payload.quantity){
+        alert('請完整輸入日期、編號、數量');
+        return;
+      }
+
+      const r = await fetch('/api_add_row',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      const j = await r.json();
+      if(!j.ok){
+        alert(j.error || '新增失敗');
+        return;
+      }
       location.reload();
     }
-    document.getElementById('btn-add').addEventListener('click',addRow);
-    [pidEl,qtyEl].forEach(el=>el.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addRow(); } }));
 
-    grid.addEventListener('click',async(e)=>{
-      const btn=e.target.closest('.btn-del'); if(!btn) return;
-      const tr=btn.closest('tr'); const idx=Number(tr.dataset.index);
+    document.getElementById('btn-add').addEventListener('click', addRow);
+    [pidEl, qtyEl].forEach(el=>{
+      el.addEventListener('keydown', e=>{
+        if(e.key === 'Enter'){
+          e.preventDefault();
+          addRow();
+        }
+      });
+    });
+
+    // 刪除
+    grid.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('.btn-del');
+      if(!btn) return;
+      const tr  = btn.closest('tr');
+      const idx = Number(tr.dataset.index);
+
       if(!confirm('確定要刪除此筆資料？')) return;
-      const payload={date:(dateEl.value||'').trim(),vendor:(vendorEl.value||'').trim(),filename:currentFile,row_index:idx};
-      const r=await fetch('/api_delete_row',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      const j=await r.json(); if(!j.ok) return alert(j.error||'刪除失敗');
+
+      const payload = {
+        date:     (dateEl.value   || '').trim(),
+        vendor:   (vendorEl.value || '').trim(),
+        filename: currentFile,
+        row_index: idx
+      };
+
+      const r = await fetch('/api_delete_row',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      const j = await r.json();
+      if(!j.ok){
+        alert(j.error || '刪除失敗');
+        return;
+      }
       location.reload();
     });
 
-    document.getElementById('btn-new-file').addEventListener('click',async()=>{
-      const d=(dateEl.value||'').trim();
-      const r=await fetch('/api/orders/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:d})});
-      const j=await r.json(); if(!j.ok) return alert('建立新檔失敗');
-      location.search=`?date=${encodeURIComponent(d)}&vendor=&file=${encodeURIComponent(j.filename)}`;
+    // ✅ 表格內直接改「編號 / 數量」就存檔
+    grid.addEventListener('change', async (e)=>{
+      const input = e.target.closest('.cell');
+      if(!input) return;
+
+      const tr    = input.closest('tr');
+      const idx   = Number(tr.dataset.index);
+      const field = input.dataset.field;   // 編號 / 數量
+      const value = input.value.trim();
+
+      if(!field) return;
+
+      const payload = {
+        date:     (dateEl.value   || '').trim(),
+        vendor:   (vendorEl.value || '').trim(),
+        filename: currentFile,
+        row_index: idx,
+        field: field,
+        value: value
+      };
+
+      const r = await fetch('/api_update_cell',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      const j = await r.json();
+      if(!j.ok){
+        alert(j.error || '更新失敗');
+        return;
+      }
+
+      // 更新該列顯示
+      const row = j.row; // [編號, 產品, 數量, 單位, 單價, 總計]
+      tr.querySelector('input[data-field="編號"]').value  = row[0];
+      tr.querySelector('input[data-field="數量"]').value  = row[2];
+      tr.children[3].textContent = row[3]; // 單位
+      tr.children[4].textContent = row[4]; // 單價
+      tr.children[5].textContent = row[5]; // 總計
+      totalEl.textContent        = j.total_sum;
     });
 
-    document.getElementById('btn-open-file').addEventListener('click',async()=>{
-      const d=(dateEl.value||'').trim(); const ym=d?d.slice(0,7):'';
-      const r=await fetch(`/api/orders/list?ym=${encodeURIComponent(ym)}`);
-      const arr=await r.json(); if(!arr.length) return alert(`${ym||'選定月份'} 沒有檔案`);
-      const pick=prompt(arr.map((x,i)=>`${i+1}. ${x.display}`).join('\n'));
-      const n=Number(pick); if(!n||n<1||n>arr.length) return;
-      const it=arr[n-1]; let v=''; const m=it.filename.match(/^\d{4}-\d{2}-\d{2}__(.+)\.csv$/); if(m) v=m[1];
-      location.search=`?date=${encodeURIComponent(d)}&vendor=${encodeURIComponent(v)}&file=${encodeURIComponent(it.filename)}`;
+    // 新增檔案
+    document.getElementById('btn-new-file').addEventListener('click', async ()=>{
+      const d = (dateEl.value || '').trim();
+      const r = await fetch('/api/orders/new',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({date:d})
+      });
+      const j = await r.json();
+      if(!j.ok){
+        alert(j.error || '建立新檔失敗');
+        return;
+      }
+      location.search = `?date=${encodeURIComponent(d)}&vendor=&file=${encodeURIComponent(j.filename)}`;
     });
 
-    vendorEl.addEventListener('change',async()=>{
-      const v=vendorEl.value.trim(); const d=dateEl.value.trim();
-      if(!v||!d) return; if(!currentFile.startsWith('newfile_')) return;
-      const r=await fetch('/api/orders/rename',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:d,new_vendor:v,filename:currentFile})});
-      const j=await r.json(); if(!j.ok) return alert(j.error||'改名失敗');
-      location.search=`?date=${encodeURIComponent(d)}&vendor=${encodeURIComponent(v)}&file=${encodeURIComponent(j.new_name)}`;
+    // 開啟檔案：date 改用檔名的日期
+    document.getElementById('btn-open-file').addEventListener('click', async ()=>{
+      const d  = (dateEl.value || '').trim();
+      const ym = d ? d.slice(0,7) : '';
+      const r  = await fetch(`/api/orders/list?ym=${encodeURIComponent(ym)}`);
+      const arr = await r.json();
+      if(!arr.length){
+        alert(`${ym || '選定月份'} 沒有檔案`);
+        return;
+      }
+      const pick = prompt(arr.map((x,i)=>`${i+1}. ${x.display}`).join('\n'));
+      const n    = Number(pick);
+      if(!n || n < 1 || n > arr.length) return;
+
+      const it = arr[n-1];
+      // 從檔名取出日期與廠商
+      const fileDate = it.filename.slice(0,10);
+      let v = '';
+      const m = it.filename.match(/^\d{4}-\d{2}-\d{2}__(.+)\.csv$/);
+      if(m) v = m[1];
+
+      location.search =
+        `?date=${encodeURIComponent(fileDate)}&vendor=${encodeURIComponent(v)}&file=${encodeURIComponent(it.filename)}`;
     });
+
+    // 重新命名檔案（只在 newfile_* 時生效）
+    vendorEl.addEventListener('change', async ()=>{
+      const v = vendorEl.value.trim();
+      const d = dateEl.value.trim();
+      if(!v || !d) return;
+      if(!currentFile.startsWith('newfile_')) return;
+
+      const r = await fetch('/api/orders/rename',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({date:d,new_vendor:v,filename:currentFile})
+      });
+      const j = await r.json();
+      if(!j.ok){
+        alert(j.error || '改名失敗');
+        return;
+      }
+      location.search =
+        `?date=${encodeURIComponent(d)}&vendor=${encodeURIComponent(v)}&file=${encodeURIComponent(j.new_name)}`;
+    });
+
+    // ✅ 預覽列印：用檔案日期優先，其次輸入框日期
+    document.getElementById('btn-preview').addEventListener('click', ()=>{
+      const fd = (fileDateEl.value || '').trim();
+      const d  = (dateEl.value     || '').trim();
+      const shipDate = fd || d;
+      const v  = (vendorEl.value   || '').trim();
+
+      if(!currentFile){
+        alert('目前沒有檔案可預覽，請先新增或開啟檔案。');
+        return;
+      }
+
+      const link = `/print_preview?date=${encodeURIComponent(shipDate)}&vendor=${encodeURIComponent(v)}&file=${encodeURIComponent(currentFile)}`;
+      window.location.href = link;
+    });
+
   })();
   </script>
+
 </body>
 </html>
